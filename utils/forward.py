@@ -47,12 +47,14 @@ class mCPMHandForward():
 
     def extract(self, heatmaps):
         result_joints = np.zeros([self.num_of_joints, 2], dtype=np.float32)
+        result_beliefs = np.zeros([self.num_of_joints], dtype=np.float32)
 
         for hm_num in range(heatmaps.shape[2]):
             point = np.unravel_index(np.argmax(heatmaps[:, :, hm_num]), [self.input_img_size / 8, self.input_img_size / 8])
             result_joints[hm_num] = (point[1] * 8, point[0] * 8)
+            result_beliefs[hm_num] = heatmaps[point[0], point[1], hm_num]
 
-        return result_joints
+        return result_joints, result_beliefs
 
     def visualizeHeatmaps(self, heatmaps):
         h_width = heatmaps.shape[1]
@@ -73,6 +75,6 @@ class mCPMHandForward():
                                         })
 
         heatmaps = result_heatmaps[0][0, : , :, 0: self.num_of_joints]
-        result_points = self.extract(heatmaps)
-        return result_points, heatmaps
+        result_points, result_beliefs = self.extract(heatmaps)
+        return result_points, result_beliefs, heatmaps
 
