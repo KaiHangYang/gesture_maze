@@ -6,7 +6,8 @@ import sys
 sys.path.append("../")
 
 from nets import network
-from utils import utils
+import utils
+# import display_utilts
 
 class mCPMHandForward():
     def __init__(self, model_path):
@@ -23,7 +24,7 @@ class mCPMHandForward():
             quit()
 
         #### Set the parameters of the network
-        self.net_model = network.CPM_Model(self.num_of_stage, self.num_of_joints)
+        self.net_model = network.CPM_Model(self.num_of_stage, self.num_of_joints + 1)
         self.input_image = tf.placeholder(dtype=tf.float32, shape=[None, self.input_img_size, self.input_img_size, 3], name="input_image")
         self.input_center_map = tf.placeholder(dtype=tf.float32, shape=[None, self.input_img_size, self.input_img_size, 1], name="input_center_map")
         self.net_model.build_model(self.input_image, self.input_center_map, self.batch_size)
@@ -40,12 +41,27 @@ class mCPMHandForward():
         image = image[np.newaxis]
         image = image / 256.0 - 0.5
         center_map = utils.make_gaussian(self.input_img_size, self.input_img_size / 2, self.input_img_size / 2, self.center_map_radius)
-        center_map = center_map[np.newaxis]
+        center_map = center_map[np.newaxis, :, :, np.newaxis]
 
         return image, center_map
 
     def extract(self, heatmaps):
         result_joints = np.zeros([self.num_of_joints, 2], dtype=np.float32)
+
+        for hm_num in range(heatmaps.shape[2]):
+            point = np.unravel_index(np.argmax(heatmaps[:, :, hm_num]), [self.input_img_size / 8, self.input_img_size / 8])
+            result_joints[hm_num] = (point[1] * 8, point[0] * 8)
+
+        return result_joints
+
+    def visualizeHeatmaps(self, heatmaps):
+        h_width = heatmaps.shape[1]
+        h_height = heatmaps.shape[0]
+        h_num = heatmaps.shape[2]
+
+        pad_size = 4
+        result_size = 5 * (h_width + 2 * pad_size)
+
 
     def predict(self, image):
         input_image, input_center_map = self.preprocess(image)
@@ -55,4 +71,8 @@ class mCPMHandForward():
                                              self.input_image: input_image,
                                              self.input_center_map: input_center_map
                                         })
+
+        heatmaps = result_heatmaps[0][0, : , :, 0: self.num_of_joints]
+        result_points = self.extract(heatmaps)
+        return result_points, heatmaps
 
