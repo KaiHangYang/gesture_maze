@@ -9,7 +9,7 @@ from utils import bbtracker
 if __name__ == "__main__":
     cap = cv2.VideoCapture(0)
     model = forward.mCPMHandForward("./tf_models/cpm_hand_tf/cpm_hand")
-    tracker = bbtracker.BBTracker(wndWidth = 368, wndHeight = 368, pad_scale = 1.2)
+    tracker = bbtracker.BBTracker(wndWidth = 368, wndHeight = 368, pad_scale = 2)
 
 
     cap_width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
@@ -25,12 +25,13 @@ if __name__ == "__main__":
         img = tracker.track(prev_joints, prev_beliefs, raw_img.copy())
 
         points, beliefs, _ = model.predict(img)
-        points = points * tracker.scale - tracker.offset
 
-        raw_img = display_utils.drawLines(raw_img, points)
+        global_joints = tracker.get_global_joints(points)
 
-        cv2.imshow("test", raw_img)
+        raw_img = display_utils.drawLines(raw_img, global_joints)
+
+        cv2.imshow("test2", raw_img)
         cv2.waitKey(3)
 
-        prev_joints = points
-        prev_beliefs = beliefs
+        prev_joints = points.copy()
+        prev_beliefs = beliefs.copy()

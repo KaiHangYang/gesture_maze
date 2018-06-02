@@ -23,12 +23,12 @@ class BBTracker():
         self.t_val = [0] * 4
 
     def track(self, points, points_belief, img):
-        threshhold = max(img.shape[0], img.shape[1]) * 0.2
+        threshhold_min = max(img.shape[0], img.shape[1]) * 0.7
+        threshhold_max = max(img.shape[0], img.shape[1])
+
         points = np.reshape(points, (-1, 2))
 
-        points *= self.scale
-        points[:, 0] += self.offset[0]
-        points[:, 1] += self.offset[1]
+        points = self.get_global_joints(points)
 
         img_width = img.shape[1]
         img_height = img.shape[0]
@@ -39,17 +39,23 @@ class BBTracker():
         max_y = np.max(points[:, 1])
 
         box_size = max([max_x - min_x, max_y - min_y]) * self.pad_scale
+
+        if box_size > threshhold_max:
+            box_size = threshhold_max
+        elif box_size < threshhold_min:
+            box_size = threshhold_min
+
         center = np.asarray([(max_x + min_x) / 2.0, (max_y + min_y) / 2.0])
 
-        # if self.frame_num > self.initial_frame_num:
-            # if pow((self.center[0] - center[0]) ** 2 + (self.center[1] - center[1]) ** 2, 0.5) > 10:
-                # box_size = int(self.box_size * 0.4 + box_size * 0.6)
-                # center = self.center * 0.4 + center * 0.6
-            # else:
-                # box_size = self.box_size
-                # center = self.center
-        # else:
-        box_size = int(box_size)
+        if self.frame_num > self.initial_frame_num:
+            if pow((self.center[0] - center[0]) ** 2 + (self.center[1] - center[1]) ** 2, 0.5) > 10:
+                box_size = int(self.box_size * 0.4 + box_size * 0.6)
+                center = self.center * 0.4 + center * 0.6
+            else:
+                box_size = self.box_size
+                center = self.center
+        else:
+            box_size = int(box_size)
 
         r_l = int(center[0] - box_size / 2.0)
         r_r = int(r_l + box_size)
@@ -63,23 +69,25 @@ class BBTracker():
 
         self.offset = [r_l, r_t]
 
-        if not self.valid_beliefs(points_belief) or (raw_b - raw_t < threshhold or raw_r - raw_l < threshhold):
+
+        if not self.valid_beliefs(points_belief):
             # tracking failed
             self.bbx = [0, 0, self.wndWidth, self.wndHeight]
             self.frame_num = 0
             self.center = np.asarray([self.wndWidth / 2.0, self.wndHeight / 2.0])
-            self.box_size = max([self.wndWidth, self.wndHeight])
+            self.box_size = max([img.shape[0], img.shape[1]])
             self.scale = float(self.box_size) / self.crop_box_size
-            self.offset = [(self.wndWidth - self.box_size) / 2.0, (self.wndHeight - self.box_size) / 2.0]
+            self.offset = [(img.shape[1] - self.box_size) / 2.0, (img.shape[0] - self.box_size) / 2.0]
             img = utils.pad_image(img, self.wndHeight)
             return img
         else:
             if self.frame_num < 2*self.initial_frame_num:
                 self.frame_num += 1
-
+            # print(raw_t - r_t, r_b - raw_b, raw_l - r_l , r_r - raw_r)
             result = cv2.copyMakeBorder(img[raw_t:raw_b, raw_l:raw_r], top=raw_t - r_t, bottom=r_b - raw_b, left=raw_l - r_l, right=r_r - raw_r, borderType=cv2.BORDER_CONSTANT, value=[128, 128, 128])
 
             self.scale = float(result.shape[0]) / self.crop_box_size
+            # print(self.scale)
             self.bbx = [raw_l, raw_t, raw_r, raw_b]
             self.box_size = box_size
             self.center = center
@@ -87,12 +95,21 @@ class BBTracker():
                 result = cv2.resize(result, (self.wndWidth, self.wndHeight))
             return result
 
+    def get_global_joints(self, local_joints):
+        local_joints = local_joints.copy()
+        local_joints *= self.scale
+        local_joints[:, 0] += self.offset[0]
+        local_joints[:, 1] += self.offset[1]
+
+        return local_joints
+
+
     def valid_beliefs(self, belief):
         if self.frame_num < self.initial_frame_num:
             return True
 
         total_num = float(len(belief))
-        valid_num = np.sum(np.uint8(belief > 0.55))
+        valid_num = np.sum(np.uint8(belief > 0.15))
         # If the belief of half points is below 0.2, then loss tracking
         if valid_num / total_num < 0.65:
             return False
