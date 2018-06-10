@@ -29,7 +29,8 @@ class mCPMHandForward():
         self.input_center_map = tf.placeholder(dtype=tf.float32, shape=[None, self.input_img_size, self.input_img_size, 1], name="input_center_map")
         self.net_model.build_model(self.input_image, self.input_center_map, self.batch_size)
         saver = tf.train.Saver()
-        self.sess = tf.Session()
+        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.433)
+        self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
         self.sess.run(tf.global_variables_initializer())
         saver.restore(self.sess, self.model_path)
 
