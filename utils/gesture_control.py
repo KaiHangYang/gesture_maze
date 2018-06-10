@@ -60,6 +60,8 @@ class GestureControler():
         return self.cur_pose == 2
     def getReset(self):
         return self.cur_pose == 0
+    def getPause(self):
+        return self.cur_pose == 3
 
     def getPos(self):
         pos_x = np.mean(self.prev_global_joints[:, 0])

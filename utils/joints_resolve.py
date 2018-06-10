@@ -48,7 +48,7 @@ def resolve(joints):
         if fingers[i][3] < 1.1 * fingers[i][1]:
             _flags[i] = 1
 
-    # Reset 0, Moving 1, Quit 2
+    # Reset 0, Moving 1, Quit 2, Pause 3
 
     if (_flags[0:5] == np.array([0, 1, 1, 1, 0])).all():
         # print("Reset")
@@ -59,4 +59,6 @@ def resolve(joints):
     elif (_flags[1:5] == np.array([0, 0, 1, 1])).all():
         # print("Quit")
         return 2
+    elif (_flags[0:5] == np.array([0, 0, 0, 0, 0])).all():
+        return 3
 

@@ -140,6 +140,9 @@ class Game(ShowBase):
         if dt > 0.2:
             return Task.cont
 
+        if self.gesture_controler.getPause():
+            return Task.cont
+
         if self.gesture_controler.getQuit():
             sys.exit()
 
