@@ -1,4 +1,5 @@
 from direct.showbase.ShowBase import ShowBase
+from pandac.PandaModules import WindowProperties
 from panda3d.core import CollisionTraverser, CollisionNode
 from panda3d.core import CollisionHandlerQueue, CollisionRay
 from panda3d.core import Material, LRotationf, NodePath
@@ -22,7 +23,11 @@ MAX_SPEED_SQ = MAX_SPEED ** 2
 class Game(ShowBase):
     def __init__(self):
         ShowBase.__init__(self)
-        self.tital = OnscreenText(text="Test", parent=base.a2dTopLeft, align=TextNode.ALeft, pos=(0.05, -0.08), fg=(1, 1, 1, 1), scale=0.06, shadow=(0, 0, 0, 0.5))
+        props = WindowProperties()
+        props.setTitle("Gesture Maze")
+        base.win.requestProperties(props)
+
+        self.tital = OnscreenText(text="Gesture Maze Control", parent=base.a2dTopLeft, align=TextNode.ALeft, pos=(0.05, -0.08), fg=(1, 1, 1, 1), scale=0.06, shadow=(0, 0, 0, 0.5))
         self.accept("escape", sys.exit)
 
         camera_num = 0
@@ -143,8 +148,9 @@ class Game(ShowBase):
         if self.gesture_controler.getPause():
             return Task.cont
 
-        if self.gesture_controler.getQuit():
-            sys.exit()
+        # if self.gesture_controler.getQuit():
+            # print("Gesture: Quit. You will quit from the game.")
+            # sys.exit()
 
         # if self.gesture_controler.getReset():
             # self.resetGame()

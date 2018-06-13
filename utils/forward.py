@@ -2,12 +2,14 @@ import numpy as np
 import tensorflow as tf
 import os
 import sys
+import cv2
 
 sys.path.append("../")
 
 from nets import network
 import utils
-# import display_utilts
+import settings
+import display_utils
 
 class mCPMHandForward():
     def __init__(self, model_path):
@@ -29,7 +31,7 @@ class mCPMHandForward():
         self.input_center_map = tf.placeholder(dtype=tf.float32, shape=[None, self.input_img_size, self.input_img_size, 1], name="input_center_map")
         self.net_model.build_model(self.input_image, self.input_center_map, self.batch_size)
         saver = tf.train.Saver()
-        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.433)
+        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=settings.gpu_memory_fraction)
         self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
         self.sess.run(tf.global_variables_initializer())
         saver.restore(self.sess, self.model_path)
@@ -63,7 +65,23 @@ class mCPMHandForward():
         h_num = heatmaps.shape[2]
 
         pad_size = 4
-        result_size = 5 * (h_width + 2 * pad_size)
+        block_size = h_width + 2 * pad_size
+        result_size = 5 * block_size
+        result_data = -np.ones([result_size, result_size], dtype=np.float32)
+
+        for i in range(self.num_of_joints):
+            cur_row = i / 5
+            cur_col = i % 5
+            result_data[(pad_size + cur_row * block_size):(pad_size + cur_row * block_size + h_height), (pad_size + cur_col * block_size):(pad_size + cur_col * block_size + h_height)] = heatmaps[:, :, i]
+
+        mask = (result_data == -1)
+
+        result_image = display_utils.visualizeHeatmap(result_data, min_val=0, mid_val=0.5, max_val=1.0)
+
+        result_image[mask] = 0
+
+        return result_image
+
 
 
     def predict(self, image):
@@ -76,6 +94,8 @@ class mCPMHandForward():
                                         })
 
         heatmaps = result_heatmaps[0][0, : , :, 0: self.num_of_joints]
+        # cv2.imshow("visual_heatmaps", self.visualizeHeatmaps(heatmaps))
+        # cv2.waitKey(3)
         result_points, result_beliefs = self.extract(heatmaps)
         return result_points, result_beliefs, heatmaps
 

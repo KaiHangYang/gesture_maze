@@ -48,7 +48,7 @@ class GestureControler():
             self.cur_pose = -1
 
         raw_img = display_utils.drawLines(raw_img, global_joints)
-        cv2.imshow("test2", raw_img)
+        cv2.imshow("Gesture show", raw_img)
         cv2.waitKey(1)
 
     def isMoving(self):
