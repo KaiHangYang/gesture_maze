@@ -14,6 +14,7 @@ from direct.task.Task import Task
 import sys
 
 from utils import gesture_control
+from utils import settings
 
 ACCEL = 70
 MAX_SPEED = 5
@@ -36,7 +37,7 @@ class Game(ShowBase):
         self.disableMouse()
         camera.setPosHpr(0, 0, 25, 0, -90, 0)
 
-        self.maze = loader.loadModel("models/maze")
+        self.maze = loader.loadModel("models/%s" % settings.maze_id)
         self.maze.reparentTo(render)
 
         self.walls = self.maze.find("**/wall_collide")
